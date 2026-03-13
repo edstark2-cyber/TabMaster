@@ -63,20 +63,24 @@ export const patchLibrary = (tabMasterManager: TabMasterManager): RoutePatch => 
                         //* deps contains useful variables from within the orignal component that we otherwise wouldn't be able to get
                         const fakeUseMemo = (fn: () => any, deps: any[]) => {
                             return realUseMemo(() => {
-                                let tabs: [SteamTab[], boolean] = fn()
-                                if (!Array.isArray(tabs)) {
+                                const result: any = fn()
+                                if (!Array.isArray(result)) {
                                     LogController.raiseError('No array returned when trying to retrieve default tabs')
-                                    return tabs
+                                    return result
                                 }
+
+                                // Handle both formats: SteamTab[] (old Steam) and [SteamTab[], boolean] (new Steam)
+                                const isTuple = Array.isArray(result[0])
+                                const tabs: SteamTab[] = isTuple ? result[0] : result
 
                                 const [eSortBy, setSortBy, showSortingContextMenu] = deps
                                 const sortingProps = { eSortBy, setSortBy, showSortingContextMenu }
                                 const collectionsAppFilterGamepad = deps[6]
 
-                                let tabTemplate = tabs[0].find((tab: SteamTab) => tab?.id === 'AllGames')
+                                let tabTemplate = tabs.find((tab: SteamTab) => tab?.id === 'AllGames')
                                 if (tabTemplate === undefined) {
                                     LogController.raiseError(`Couldn't find default tab "AllGames" to copy from`)
-                                    return tabs
+                                    return result
                                 }
 
                                 const TabAppGrid =
@@ -87,7 +91,7 @@ export const patchLibrary = (tabMasterManager: TabMasterManager): RoutePatch => 
                                     )?.type
                                 if (TabAppGrid === undefined) {
                                     LogController.raiseError(`Couldn't find Tab component`)
-                                    return tabs
+                                    return result
                                 } else {
                                     if (!TabAppGridComponent) TabAppGridComponent = TabAppGrid
                                 }
@@ -117,7 +121,7 @@ export const patchLibrary = (tabMasterManager: TabMasterManager): RoutePatch => 
                                             )
                                         } else {
                                             return (
-                                                tabs[0].find(actualTab => {
+                                                tabs.find(actualTab => {
                                                     if (actualTab.id === tabContainer.id) {
                                                         if (!actualTab.footer) actualTab.footer = {}
                                                         actualTab.footer.onMenuActionDescription = 'Tab Master'
@@ -133,10 +137,10 @@ export const patchLibrary = (tabMasterManager: TabMasterManager): RoutePatch => 
                                         }
                                     })
                                 } else {
-                                    pacthedTabs = tabs[0]
+                                    pacthedTabs = tabs
                                 }
 
-                                return [pacthedTabs, tabs[1]]
+                                return isTuple ? [pacthedTabs, result[1]] : pacthedTabs
                             }, deps)
                         }
 
