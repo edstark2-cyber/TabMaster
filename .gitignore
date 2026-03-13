@@ -45,3 +45,6 @@ yalc.lock
 .vscode/tasks.json
 # Ignore output folder
 dist
+
+# npm lock file (project uses pnpm)
+package-lock.json
